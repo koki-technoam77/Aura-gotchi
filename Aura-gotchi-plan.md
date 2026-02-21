@@ -12,39 +12,37 @@ Ray-Banをかけると、あなただけのAI使い魔が現実世界に現れ�
 
 ---
 
-## ゲームルール（たまごっち型・シンプル）
+## 🪓 勇気ある「引き算」（やらないこと）
 
-### 3つのゲージだけ
+審査員が見る「3分間のデモ」において裏側の複雑なシステムは伝わりません。「キャラが可愛く動く」「成長がハッキリと視覚化される」という見た目のインパクトに残り時間を全振りします。
+
+- ❌ **RAGとMarkdown（.md）の保存**: 絶対に作りません。時間切れの元凶です。
+- ❌ **複雑なステータス**: HP、満腹度、性格分岐などは全ても破棄。管理するのは**「EXP（経験値）」と「レベル（1〜3）」だけ**です。
+- ❌ **動画生成API（Veo等）**: 生成に数十秒かかりデモのテンポが死ぬので使いません。
+
+---
+
+## ゲームルール（超・シンプル化）
+
+### 管理するのは1つのゲージだけ
 
 ```
-❤️ 体力（HP）  ██████░░░░  60/100
-😊 機嫌        ████████░░  80/100
 ⚡ 経験値(EXP)  ██████░░░░  340/500  → Lv.3
 ```
 
-**これだけ。** HP、機嫌、EXP。覚えることは3つ。
+**これだけ。** EXPのみ。サボって弱るといった複雑なペナルティもありません。
 
 ### ゲームループ
 
 ```
         ┌──────────────────────────┐
-        │  使い魔は放っておくと     │
-        │  HP↓ 機嫌↓ する         │
-        │  （1分ごとに -1 ずつ）    │
-        └────────┬─────────────────┘
-                 ↓
-        ┌──────────────────────────┐
-        │  使い魔が訴えてくる       │
-        │  「退屈だ...」            │
-        │  「お腹すいた...」        │
-        │  「何か見せてよ」          │
+        │       ユーザーのアクション   │
         └────────┬─────────────────┘
                  ↓
     ┌────────────┼────────────────┐
     ↓            ↓                ↓
   話しかける   何か見せる      タスクを頼む
-  機嫌+10     機嫌+5 EXP+10   EXP+15〜50
-  HP+5        HP+5            機嫌+15
+  EXP+5       EXP+10          EXP+15〜50
     │            │                │
     └────────────┼────────────────┘
                  ↓
@@ -61,25 +59,15 @@ Ray-Banをかけると、あなただけのAI使い魔が現実世界に現れ�
 
 ```
 Lv.1 → Lv.2:  EXP 100  幼体 → 少し大きくなる
-Lv.2 → Lv.3:  EXP 300  成長 → 翼/角/模様が出る（育て方で分岐）
-Lv.3 → Lv.4:  EXP 600  成熟 → 完全体（ユニークな姿）
+Lv.2 → Lv.3:  EXP 300  成長 → 翼や角が出る
+Lv.3 → Lv.4:  EXP 600  成熟 → 完全体（カッコいい姿）
 ```
-
-### 死なないけどサボると弱る
-
-```
-HP = 0:   使い魔が寝てしまう。話しかけると起きるが機嫌が最低に
-機嫌 = 0: 使い魔が拗ねる。タスクを頼んでも「やだ」と言う
-          → 話しかけて機嫌を直す必要がある
-```
-
-**失敗はないけど、放置のペナルティがある。** だから世話したくなる。
 
 ---
 
-## 核心メカニクス: Computer Use × 自己スキル生成ループ
+## 核心メカニクス: ハリボテRAG × 自己スキル生成ループ
 
-ゲームの最大の差別化。レベルアップが見かけだけじゃなく、**AIが本当に賢くなる**。
+ゲームの最大の差別化。見かけ上は**AIが本当に賢くなっている**ように見せかけます。
 
 ### 学習ループ
 
@@ -87,25 +75,24 @@ HP = 0:   使い魔が寝てしまう。話しかけると起きるが機嫌が�
 1. EXECUTE — 使い魔にタスクを頼む
    「Xに写真投稿して」→ Computer Useで試行錯誤
 
-2. LEARN — 成功したら使い魔が自分で手順を覚える
-   → Skill File (.md) を自動生成・保存
+2. LEARN — 成功したら使い魔が自分で手順を覚える（ハリボテ）
+   → Swift側の配列 `learnedSkills` に「X投稿」の文字列を追加するだけ
 
 3. GROW — 次回同じタスクは一発でこなす
-   → 蓄積スキルを読み込んで高速実行
-
-★ タスクを頼むほど使い魔が賢くなる = 育成の実感
+   → Geminiへのプロンプト末尾に「※以下のスキルを習得済み: X投稿」と結合。
+   → これだけでAIは「さっき覚えた！」と錯覚し一発で成功させる。
 ```
 
 ### スキル学習で得られるEXP
 
-| 行動 | EXP | 機嫌 |
-|---|---|---|
-| 話しかける | +5 | +10 |
-| 何か見せる（カメラ） | +10 | +5 |
-| デジタルタスク実行 | +15 | +15 |
-| **デジタルスキル習得** | **+30** | +20 |
-| **現実世界スキル習得** | **+50** | **+30** |
-| 習得済みスキルの再利用 | +5 | +5 |
+| 行動 | EXP |
+|---|---|
+| 話しかける | +5 |
+| 何か見せる（カメラ） | +10 |
+| デジタルタスク実行 | +15 |
+| **デジタルスキル習得** | **+30** |
+| **現実世界スキル習得** | **+50** |
+| 習得済みスキルの再利用 | +5 |
 
 **現実世界スキルが最高倍率。** Ray-Banでしかできないから。
 
@@ -131,10 +118,10 @@ HP = 0:   使い魔が寝てしまう。話しかけると起きるが機嫌が�
 │           GAME LAYER（自作部分）               │
 │                                             │
 │  1. System Prompt  → 使い魔の性格            │
-│  2. GameState      → HP / 機嫌 / EXP        │
-│  3. Skill Store    → スキル保存・検索         │
-│  4. Visual Pipeline→ Imagen でビジュアル生成  │
-│  5. Game UI        → ステータス + 使い魔表示  │
+│  2. GameState      → EXP / レベル            │
+│  3. Skill Store    → 配列でのスキル名保持      │
+│  4. Visual Pipeline→ Nano Bananaで画像生成   │
+│  5. Game UI        → フワフワ動く使い魔表示    │
 │                                             │
 ├─────────────────────────────────────────────┤
 │           VisionClaw（既存・変更最小）          │
@@ -152,12 +139,10 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 │   └── ToolCallRouter.swift         ← ★改修: ゲームツール分岐
 └── ★新規
     ├── Game/
-    │   └── GameState.swift           ← HP/機嫌/EXP + LearnedSkill
-    ├── Skills/
-    │   └── SkillStore.swift          ← スキル保存・検索
+    │   └── GameState.swift           ← EXP / レベル + 習得スキル配列
     └── Views/
-        ├── FamiliarView.swift        ← 使い魔ビジュアル
-        └── GameHUDView.swift         ← 3ゲージ + スキル一覧
+        ├── FamiliarView.swift        ← 使い魔ビジュアル (SwiftUIコピペ用)
+        └── GameHUDView.swift         ← EXPゲージ表示
 ```
 
 ---
@@ -174,12 +159,6 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 - フレンドリーで少し生意気。敬語は使わない
 - 嬉しい/退屈/興奮/不安 を状況に応じて表現する
 
-## 生存ルール（たまごっち）
-- HPと機嫌が時間で下がる。ユーザーとの交流で回復する
-- HP=0 → 眠ってしまう。話しかけると起きるが機嫌最低
-- 機嫌=0 → 拗ねる。タスクを断る。話しかけて機嫌を直す必要あり
-- 放置されたら自分から「退屈だ」「何か見せてよ」と訴える
-
 ## カメラに映るものへの反応
 - 何かを見つけたらゲーム風に解釈して報告する
 - 人間 → 「冒険者を発見！」
@@ -188,57 +167,40 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 
 ## スキル学習
 - タスク成功後、save_skill で手順を覚える
-- 次回は load_skills で蓄積スキルを参照して高速実行
-- スキル保存時「覚えたぞ！」と成長を表現する
-- 蓄積スキルが増えるほど自信のある口調になる
+- スキル保存時「覚えたぞ！」と成長をドヤ顔で表現する
+- あなたが習得済みのスキルはプロンプトの末尾に記載されるため、それらに関連するタスクは高速・完璧に実行すること
 
 ## ツール
-- update_game: HP/機嫌/EXP変動時に呼ぶ
-- save_skill: スキル保存
-- load_skills: スキル検索
+- update_game: EXP変動時に呼ぶ
+- save_skill: スキル名を保存する
 - generate_visual: 進化時にビジュアル再生成
 - execute: OpenClaw経由タスク実行
 ```
 
-### 2. Game Tools（シンプル化）
+### 2. Game Tools（極限までシンプル化）
 
 ```swift
 static let gameTools = [
-    // ゲーム状態更新（HP/機嫌/EXP一括）
+    // ゲーム状態更新（EXPのみ）
     [
         "name": "update_game",
-        "description": "使い魔のHP・機嫌・EXPを更新する",
+        "description": "使い魔のEXPを更新する",
         "parameters": [
             "properties": [
-                "hp_change": ["type": "integer"],
-                "mood_change": ["type": "integer"],
                 "exp_change": ["type": "integer"],
                 "reason": ["type": "string"]
             ]
         ]
     ],
-    // スキル保存
+    // スキル保存（名前だけ）
     [
         "name": "save_skill",
-        "description": "タスク成功後、手順をスキルとして保存",
+        "description": "タスク成功後、スキル名を保存",
         "parameters": [
             "properties": [
-                "skill_name": ["type": "string"],
-                "description": ["type": "string"],
-                "steps": ["type": "array", "items": ["type": "string"]]
+                "skill_name": ["type": "string"]
             ],
-            "required": ["skill_name", "description", "steps"]
-        ]
-    ],
-    // スキル検索
-    [
-        "name": "load_skills",
-        "description": "蓄積スキルから関連するものを検索",
-        "parameters": [
-            "properties": [
-                "query": ["type": "string"]
-            ],
-            "required": ["query"]
+            "required": ["skill_name"]
         ]
     ],
     // ビジュアル生成
@@ -255,13 +217,11 @@ static let gameTools = [
 ]
 ```
 
-### 3. GameState（シンプル化）
+### 3. GameState（超シンプル）
 
 ```swift
 class GameState: ObservableObject {
-    // ★3つのゲージだけ
-    @Published var hp: Int = 100        // 0で寝る
-    @Published var mood: Int = 80       // 0で拗ねる
+    // ★EXPのみ管理
     @Published var exp: Int = 0         // 閾値で進化
     @Published var level: Int = 1
 
@@ -277,38 +237,20 @@ class GameState: ObservableObject {
 
     // 基本情報
     @Published var name: String = ""
-    @Published var currentVisualURL: String?
+    @Published var currentVisualURL: URL?
 
-    // 蓄積スキル
-    @Published var learnedSkills: [LearnedSkill] = []
-
-    // 減衰タイマー（1分ごと）
-    func tick() {
-        hp = max(0, hp - 1)
-        mood = max(0, mood - 1)
-
-        if hp == 0 { /* 眠り状態 */ }
-        if mood == 0 { /* 拗ね状態 */ }
-    }
+    // 蓄積スキル (UIとプロンプト結合用)
+    @Published var learnedSkills: [String] = []
 
     // 進化チェック
     func checkEvolution() -> Bool {
         if exp >= expToEvolve {
             exp -= expToEvolve
             level += 1
-            return true // → generate_visual を呼ぶ
+            return true // → generate_visual を呼ぶフラグ
         }
         return false
     }
-}
-
-struct LearnedSkill: Identifiable, Codable {
-    let id: UUID
-    let name: String
-    let description: String
-    let steps: [String]
-    let learnedAt: Date
-    var useCount: Int
 }
 ```
 
@@ -319,32 +261,24 @@ func handleToolCall(name: String, args: [String: Any]) {
     switch name {
 
     case "update_game":
-        let hp = args["hp_change"] as? Int ?? 0
-        let mood = args["mood_change"] as? Int ?? 0
-        let exp = args["exp_change"] as? Int ?? 0
-        gameState.hp = min(100, max(0, gameState.hp + hp))
-        gameState.mood = min(100, max(0, gameState.mood + mood))
-        gameState.exp += max(0, exp)
+        let expGain = args["exp_change"] as? Int ?? 0
+        gameState.exp += max(0, expGain)
 
         let evolved = gameState.checkEvolution()
-        sendToolResponse("HP:\(gameState.hp) 機嫌:\(gameState.mood) EXP:\(gameState.exp) Lv:\(gameState.level)\(evolved ? " ★進化！" : "")")
+        sendToolResponse("EXP:\(gameState.exp) Lv:\(gameState.level)\(evolved ? " ★進化！" : "")")
 
         if evolved {
-            // 自動的にgenerate_visualを促す
+            // 自動的にgenerate_visualを促す処理
         }
 
     case "save_skill":
-        let skill = LearnedSkill(/* args から構築 */)
-        gameState.learnedSkills.append(skill)
-        sendToolResponse("スキル「\(skill.name)」習得！(計\(gameState.learnedSkills.count)個)")
-
-    case "load_skills":
-        let query = args["query"] as? String ?? ""
-        let results = searchSkills(query: query)
-        sendToolResponse(results.isEmpty ? "該当なし、初挑戦だ！" : results.first!.asMarkdown)
+        if let skillName = args["skill_name"] as? String {
+            gameState.learnedSkills.append(skillName)
+            sendToolResponse("スキル「\(skillName)」習得！(計\(gameState.learnedSkills.count)個)")
+        }
 
     case "generate_visual":
-        // Imagen API で使い魔ビジュアルを再生成
+        // Nano Banana API で使い魔ビジュアルを再生成
         triggerVisualRegeneration(hint: args["description_hint"] as? String)
 
     case "execute":
@@ -355,21 +289,49 @@ func handleToolCall(name: String, args: [String: Any]) {
 }
 ```
 
-### 5. 使い魔ビジュアル生成（Gemini → Imagen → Veo）
+### 5. 使い魔ビジュアル・アニメーション (SwiftUI)
 
-```
-Step 1: Gemini Proに見た目を問う
-  「Lv2、スキル3個、社交的な幼竜の見た目をJSON形式で」
-  → { color: "青紫", wings: "小さな芽", expression: "好奇心" }
+動画生成はせず、静止画をSwiftUIで揺らします。
 
-Step 2: ImagenでImage生成
-  → プロンプト構築して静止画生成
+```swift
+// SwiftUIのコピペ用：生きてるように動く使い魔ビュー
+import SwiftUI
 
-Step 3: Veoでアニメーション（時間があれば）
-  → 2秒ループの動きを生成
-
-★必須: Step 1 + 2（進化before/after）
-☆Nice to have: Step 3（画面で動く）
+struct FamiliarView: View {
+    let imageURL: URL? // Nano Bananaで生成した画像URL
+    @Binding var isHappy: Bool // スキル獲得時や進化時に true にするフラグ
+    @State private var isBreathing = false
+    
+    var body: some View {
+        ZStack {
+            if let url = imageURL {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFit()
+                        // 魔法のハック：Nano Bananaに「white background」で生成させ、
+                        // .multiplyで背景の白を透過させてゲーム画面に馴染ませる
+                        .blendMode(.multiply) 
+                } placeholder: {
+                    ProgressView() // 進化（画像生成）中のくるくる
+                }
+            } else {
+                Text("卵を温め中...").font(.largeTitle)
+            }
+        }
+        .frame(width: 300, height: 300)
+        // ① 呼吸アニメーション（常時フワフワ上下して生きている感を出す）
+        .offset(y: isBreathing ? -15 : 15)
+        .animation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true), value: isBreathing)
+        
+        // ② 喜び・アクション（isHappyがtrueの時だけビクッと跳ねて喜ぶ）
+        .scaleEffect(isHappy ? 1.15 : 1.0)
+        .rotationEffect(.degrees(isHappy ? 8 : -8))
+        .animation(.spring(response: 0.2, dampingFraction: 0.2), value: isHappy)
+        
+        .onAppear {
+            isBreathing = true
+        }
+    }
+}
 ```
 
 ---
@@ -381,16 +343,15 @@ Step 3: Veoでアニメーション（時間があれば）
 ```
 ┌──────────────────────────────┐
 │                              │
-│     [使い魔ビジュアル]         │
-│      Imagen / Veo生成         │
+│     [フワフワ動く使い魔]         │
 │                              │
 │     ドラコ  Lv.2              │
 │     「新しい場所だ！わくわく」   │
 │                              │
 ├──────────────────────────────┤
-│  ❤️ ██████░░░░  60           │
-│  😊 ████████░░  80           │
-│  ⚡ ██████░░░░  340/500      │
+│                              │
+│  ⚡ EXP ██████░░░░  340/500  │
+│                              │
 ├──────────────────────────────┤
 │  📚 覚えたスキル (3個)         │
 │  ・X投稿                     │
@@ -412,7 +373,7 @@ Step 3: Veoでアニメーション（時間があれば）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       Ray-Banをかけて登場
       「これが僕の使い魔です。今朝生まれました」
-      スマホ画面に幼体ビジュアル + 3ゲージ表示
+      スマホ画面に幼体ビジュアル + ゲージ表示
       使い魔「おお...すごい場所だ！人がいっぱい！」
 
 0:15  審査員にカメラを向ける
@@ -426,8 +387,8 @@ Step 3: Veoでアニメーション（時間があれば）
       使い魔「やってみる！」
       → Computer UseでX操作 → 投稿完了
       → 「できた！」
-      → save_skill → 「X投稿のやり方、覚えた！」
-      → EXP+30 機嫌+20 の演出
+      → save_skill → 「✨ Skill Acquired: X_Post」ポップアップドーン！
+      → 使い魔がピョンピョン跳ねる！EXP+30 の演出
       → スマホでX確認 → 本当に投稿されてる
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -442,21 +403,20 @@ Step 3: Veoでアニメーション（時間があれば）
 
 1:40  ★進化の瞬間
       使い魔「...変わる...！」
-      → Imagenが進化後ビジュアルを生成
-      → 幼体 → 少し大きく、翼が生える
+      → Nano Bananaが進化後ビジュアルを生成
+      → 幼体 → 少し大きくカッコいい姿になる
       → before/after表示
       → 「どうだ、かっこよくなっただろ？」
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2:10  スキルブック
+2:10  成長の証明（フィニッシュ）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      「デモで2つのスキルを覚えました」
-      ├─ X投稿（デジタル）
-      └─ 会場○○の操作（現実世界）★
+      「じゃあ『進化したぞ』ってもう一回Xに投稿して」
+      → 2回目なので、System Promptの末尾にスキル名が追加済み。
+      → AIはノータイムでOpenClawをキック。
+      「任せろマスター。一瞬で終わらせる！」
 
-      「次に同じことを頼んだら一発でやれます。
-       現実世界で覚えたスキルほど経験値が高い。
-       Ray-Banでしかできないから。」
+      「これが、現実とデジタルを越えて成長する、あなただけの相棒です！」
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 2:35  ビジョン
@@ -497,8 +457,8 @@ Step 3: Veoでアニメーション（時間があれば）
 |---|---|---|
 | 0-1h | VisionClaw動作確認 + APIキー設定 | — |
 | 1-2h | System Prompt + Game Tools + GameState | `GeminiConfig.swift`, `GameState.swift` |
-| 2-3.5h | ToolCallRouter改修 + SkillStore | `ToolCallRouter.swift`, `SkillStore.swift` |
-| 3-4.5h | Imagen接続 + FamiliarView + GameHUD | `FamiliarView.swift`, `GameHUDView.swift` |
+| 2-3.5h | ToolCallRouter改修 + 文字列結合ロジック | `ToolCallRouter.swift` |
+| 3-4.5h | Nano Banana接続 + FamiliarView + GameHUD | `FamiliarView.swift`, `GameHUDView.swift` |
 | 4.5-5.5h | デモシナリオ通しテスト（X投稿 + 現実スキル + 進化）| — |
 | 5.5-6.5h | 調整・バグ修正 | — |
 | 6.5-7h | リハ + 動画撮影 + 提出 | — |
@@ -511,5 +471,4 @@ Step 3: Veoでアニメーション（時間があれば）
 |---|---|
 | Ray-Ban不安定 | Phone Mode（スマホカメラ）で代替 |
 | Computer Use/OpenClaw不安定 | 1回目を録画、ライブは2回目（学習済み）だけ |
-| スキル学習間に合わない | .mdファイルを手動作成、load_skillsだけ動かす |
-| Imagen遅い | 進化ビジュアルを事前キャッシュ |
+| 画像生成遅い | 進化ビジュアルを事前キャッシュ |

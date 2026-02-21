@@ -98,6 +98,32 @@ Lv.3 → Lv.4:  EXP 600  成熟 → 完全体（カッコいい姿）
 
 ---
 
+## ✨ NEW: 使い魔の「誕生」フロー（手書き絵からの生成）
+
+ゲーム開始時、ユーザーが描いた「絵（ラクガキ）」から、最初の使い魔（Lv1の姿）が生成されます。
+Google技術（Gemini + Imagen）の能力を最大限に見せつける、デモ冒頭の大きな見せ場となります。
+
+※ 仕組みはGoogle公式ウェブゲームのアーキテクチャ（描画→Geminiによる認識と属性推測→Imagenによるアセット生成）を踏襲します。
+
+### 誕生の3ステップ連携
+
+```
+【Step 1: ユーザーが紙に絵を描く（Input）】
+  Ray-Banのカメラで、ユーザーが描いた絵（例: 燃えるスライムの絵）を撮影する。
+
+【Step 2: Gemini連携（認識・属性推測）】
+  送信された画像をGeminiに分析させます。
+  Prompt: 「この手書きの絵は何の生き物ですか？また、この生き物の属性（炎、水など）と特徴（丸い、トゲがあるなど）を1〜2語で抽出してください」
+  → 解析結果: "炎", "スライム", "丸い"
+
+【Step 3: Imagen連携（アセット生成）】
+  Step2で得た属性をもとに、Nano Banana（またはImagen API）用のプロンプトを組み立て、ゲーム用アセットを生成します。
+  Prompt: "A cute round slime made of fire, 3D game asset style, highly detailed, white background"
+  → 結果: このプロンプトで生成された高品質な画像が、FamiliarView（スマホ画面）に出現し、使い魔が誕生する！
+```
+
+---
+
 ## アーキテクチャ（VisionClawベース）
 
 ### VisionClawが提供するもの（全て動作済み）
@@ -118,9 +144,9 @@ Lv.3 → Lv.4:  EXP 600  成熟 → 完全体（カッコいい姿）
 │           GAME LAYER（自作部分）               │
 │                                             │
 │  1. System Prompt  → 使い魔の性格            │
-│  2. GameState      → EXP / レベル            │
+│  2. GameState      → 初期属性 / EXP / レベル │
 │  3. Skill Store    → 配列でのスキル名保持      │
-│  4. Visual Pipeline→ Nano Bananaで画像生成   │
+│  4. Visual Pipeline→ Gemini画像解析 + Imagen │
 │  5. Game UI        → フワフワ動く使い魔表示    │
 │                                             │
 ├─────────────────────────────────────────────┤
@@ -139,7 +165,7 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 │   └── ToolCallRouter.swift         ← ★改修: ゲームツール分岐
 └── ★新規
     ├── Game/
-    │   └── GameState.swift           ← EXP / レベル + 習得スキル配列
+    │   └── GameState.swift           ← 初期属性(ベースプロンプト用) / EXP / レベル / スキル配列
     └── Views/
         ├── FamiliarView.swift        ← 使い魔ビジュアル (SwiftUIコピペ用)
         └── GameHUDView.swift         ← EXPゲージ表示
@@ -165,12 +191,16 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 - 物体 → 「アイテム発見！」
 - 場所 → 「新しいダンジョンだ！」
 
+## ゲーム開始時（誕生イベント）
+- parse_drawing を呼び出して、カメラに映った手書きの絵を解析し、自分の最初の姿を生成する。
+
 ## スキル学習
 - タスク成功後、save_skill で手順を覚える
 - スキル保存時「覚えたぞ！」と成長をドヤ顔で表現する
 - あなたが習得済みのスキルはプロンプトの末尾に記載されるため、それらに関連するタスクは高速・完璧に実行すること
 
 ## ツール
+- parse_drawing: ゲーム開始時に手書き画像から特徴を抽出する
 - update_game: EXP変動時に呼ぶ
 - save_skill: スキル名を保存する
 - generate_visual: 進化時にビジュアル再生成
@@ -181,6 +211,17 @@ VisionClaw/samples/CameraAccess/CameraAccess/
 
 ```swift
 static let gameTools = [
+    // ゲーム開始時: 手書き絵の解析
+    [
+        "name": "parse_drawing",
+        "description": "ユーザーが描いた最初の絵を解析して、自分の初期属性を決める",
+        "parameters": [
+            "properties": [
+                "attributes": ["type": "string", "description": "例: fire slime, round"]
+            ],
+            "required": ["attributes"]
+        ]
+    ],
     // ゲーム状態更新（EXPのみ）
     [
         "name": "update_game",
@@ -225,6 +266,9 @@ class GameState: ObservableObject {
     @Published var exp: Int = 0         // 閾値で進化
     @Published var level: Int = 1
 
+    // 誕生時のベース属性（Gemini解析結果を保持）
+    @Published var baseAttributes: String = "cute generic creature"
+
     // 進化閾値
     var expToEvolve: Int {
         switch level {
@@ -260,6 +304,14 @@ class GameState: ObservableObject {
 func handleToolCall(name: String, args: [String: Any]) {
     switch name {
 
+    case "parse_drawing":
+        if let attrs = args["attributes"] as? String {
+            gameState.baseAttributes = attrs
+            // 抽出したベース属性を元に、Nano Banana / Imagen APIで初期ビジュアル生成
+            triggerVisualRegeneration(hint: attrs)
+            sendToolResponse("初期属性「\(attrs)」で誕生した！")
+        }
+
     case "update_game":
         let expGain = args["exp_change"] as? Int ?? 0
         gameState.exp += max(0, expGain)
@@ -268,7 +320,8 @@ func handleToolCall(name: String, args: [String: Any]) {
         sendToolResponse("EXP:\(gameState.exp) Lv:\(gameState.level)\(evolved ? " ★進化！" : "")")
 
         if evolved {
-            // 自動的にgenerate_visualを促す処理
+            // baseAttributesを拡張して進化ビジュアル生成（例: "evolved version of \(baseAttributes)..."）
+            triggerVisualRegeneration(hint: "evolved")
         }
 
     case "save_skill":
@@ -278,7 +331,7 @@ func handleToolCall(name: String, args: [String: Any]) {
         }
 
     case "generate_visual":
-        // Nano Banana API で使い魔ビジュアルを再生成
+        // 進化時などで手動コールされる場合
         triggerVisualRegeneration(hint: args["description_hint"] as? String)
 
     case "execute":
@@ -364,24 +417,30 @@ struct FamiliarView: View {
 
 ## デモ台本（3分）
 
+見せ場0: ゼロからの誕生 (絵から画像生成)
 見せ場1: Computer UseでX投稿
 見せ場2: 現実世界スキル学習 → 進化
 
 ```
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-0:00  導入
+0:00  導入・誕生 (New!)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       Ray-Banをかけて登場
-      「これが僕の使い魔です。今朝生まれました」
-      スマホ画面に幼体ビジュアル + ゲージ表示
+      「この紙に描いたラクガキから、相棒を生み出します」
+      （紙に描いた炎のスライムの絵をRay-Banで見せる）
+      「僕の相棒として目を覚まして」
+      
+      → Geminiが `parse_drawing` を呼び出し属性（"fire slime"）を抽出
+      → 即座にImagen API経由で高品質な【炎のスライム】が生成される！
+      → スマホにフワフワ動く使い魔が登場
       使い魔「おお...すごい場所だ！人がいっぱい！」
 
-0:15  審査員にカメラを向ける
+0:30  審査員にカメラを向ける
       使い魔「強そうな冒険者を発見！」
       → 笑い
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-0:25  ★見せ場1: X投稿
+0:40  ★見せ場1: X投稿
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       「この会場の写真をXに投稿して」
       使い魔「やってみる！」
@@ -392,7 +451,7 @@ struct FamiliarView: View {
       → スマホでX確認 → 本当に投稿されてる
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1:10  ★見せ場2: 現実世界スキル学習 → 進化
+1:25  ★見せ場2: 現実世界スキル学習 → 進化
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       会場内の何か（受付の場所/自販機/看板など）を見せる
       「これ覚えて」
@@ -401,15 +460,15 @@ struct FamiliarView: View {
       → save_skill → ★EXP+50！（現実世界ボーナス）
       → EXP閾値に到達
 
-1:40  ★進化の瞬間
+1:55  ★進化の瞬間
       使い魔「...変わる...！」
-      → Nano Bananaが進化後ビジュアルを生成
+      → Nano Bananaが進化後ビジュアルを生成 (例: "evolved fire slime with wings")
       → 幼体 → 少し大きくカッコいい姿になる
       → before/after表示
       → 「どうだ、かっこよくなっただろ？」
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2:10  成長の証明（フィニッシュ）
+2:20  成長の証明（フィニッシュ）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       「じゃあ『進化したぞ』ってもう一回Xに投稿して」
       → 2回目なので、System Promptの末尾にスキル名が追加済み。
@@ -419,9 +478,9 @@ struct FamiliarView: View {
       「これが、現実とデジタルを越えて成長する、あなただけの相棒です！」
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-2:35  ビジョン
+2:45  ビジョン
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-      「今日は2つのスキルと1回の進化。
+      「今日は1枚の絵からの誕生と、2つのスキル。
        1ヶ月後には100のスキルと、
        あなたの生活を理解した最強パートナーが育つ。
 
@@ -433,6 +492,10 @@ struct FamiliarView: View {
 ### デモ準備チェックリスト
 
 ```
+誕生イベント:
+  ☐ 簡単な絵を描いた紙を用意しておく（例: 炎のスライム、葉っぱの犬）
+  ☐ フォールバック: parse_drawingがコケた場合のために、初期ベース属性を固定値で持っておく
+
 見せ場1（X投稿）:
   ☐ Xにログイン済み
   ☐ Computer UseでX投稿フローを1回テスト済み
@@ -444,7 +507,6 @@ struct FamiliarView: View {
   ☐ フォールバック: 目の前のPC画面やペットボトルで代替
 
 進化:
-  ☐ 幼体ビジュアルを事前生成
   ☐ 閾値調整: 見せ場1(+30) + 見せ場2(+50) + 会話(+20) = 100
   ☐ フォールバック: 進化ビジュアルを事前キャッシュ
 ```
@@ -458,8 +520,8 @@ struct FamiliarView: View {
 | 0-1h | VisionClaw動作確認 + APIキー設定 | — |
 | 1-2h | System Prompt + Game Tools + GameState | `GeminiConfig.swift`, `GameState.swift` |
 | 2-3.5h | ToolCallRouter改修 + 文字列結合ロジック | `ToolCallRouter.swift` |
-| 3-4.5h | Nano Banana接続 + FamiliarView + GameHUD | `FamiliarView.swift`, `GameHUDView.swift` |
-| 4.5-5.5h | デモシナリオ通しテスト（X投稿 + 現実スキル + 進化）| — |
+| 3-4.5h | Nano Banana連携 (parse_drawing / 画像生成) + UI | `FamiliarView.swift`, `GameHUDView.swift` |
+| 4.5-5.5h | デモシナリオ通しテスト（手書き誕生 + X投稿 + 進化）| — |
 | 5.5-6.5h | 調整・バグ修正 | — |
 | 6.5-7h | リハ + 動画撮影 + 提出 | — |
 
@@ -470,5 +532,6 @@ struct FamiliarView: View {
 | リスク | 対策 |
 |---|---|
 | Ray-Ban不安定 | Phone Mode（スマホカメラ）で代替 |
+| 手書き絵の解析失敗 | 固定プロンプトでキャラ生成を強行 |
 | Computer Use/OpenClaw不安定 | 1回目を録画、ライブは2回目（学習済み）だけ |
 | 画像生成遅い | 進化ビジュアルを事前キャッシュ |

@@ -13,7 +13,7 @@ Meta Ray-Banスマートグラスを通して現実世界に出現する、あ�
 ユーザーが手描きした絵から誕生し、現実世界のオブジェクトやデジタルタスク（X投稿、Web検索など）を実行することで**「スキル」**を学習。経験値（EXP）を溜めることで姿形が**「進化」**していく、全く新しい体験を提供します。
 
 > **🏆 Target: Statement 1 (AIを活用したゲーム)**
-> 既存の「仕事を代わりにやらせるAgent」ではなく、「Agentに仕事を教える過程」そのものを「育成ゲームの経験値」としてエンタメ化しました。Google AIスイート（Gemini Live API, Computer Use, Imagen 等）をフルオーケストレーションした前例のないゲーム体験です。
+> 既存の「仕事を代わりにやらせるAgent」ではなく、「Agentに仕事を教える過程」そのものを「育成ゲームの経験値」としてエンタメ化しました。Google AIスイート（Gemini Live API, Computer Use, Imagen, **Veoによる動画エフェクト生成**）をフルオーケストレーションした前例のないゲーム体験です。
 
 ### ⚠️ ハッカソン審査員の方へ：貢献内容の明確化
 
@@ -36,7 +36,7 @@ Meta Ray-Banスマートグラスを通して現実世界に出現する、あ�
 ### 🎮 遊び方 (How to Play)
 
 1. **誕生 (Birth)**
-   ゲーム開始時、紙に簡単な「魔法生物の絵」を描きます。使い魔（Gemini）がカメラ越しにそれを認識・解析し、その属性情報からあなただけの使い魔（Lv.1）の3Dビジュアルが生成されます。
+   ゲーム開始時、紙に簡単な「魔法生物の絵」を描きます。使い魔（Gemini）がカメラ越しにそれを認識・解析し、属性と**「物理的な振る舞い（燃える、落ちるなど）」**を推論します。その情報を元に画像（Imagen）および動画アニメーション（Veo）が生成され、現実世界に生命を吹き込まれた使い魔が誕生します。
 2. **学習と成長 (Learn & Grow)**
    - **話しかける:** 日常の会話で少しEXPが貯まります。
    - **現実世界のモノを見せる:** カメラ越しに珍しいものを見せると、使い魔がそれを認識してEXPが貯まります（+ 現実世界ボーナス）。
@@ -74,7 +74,7 @@ Aura-gotchi is a virtual "AI Familiar" pet simulator and productivity tool that 
 Born from a simple drawing by the user, the familiar gains **"Skills"** by observing real-world objects and executing digital tasks (e.g., posting to X, searching the web). As it completes tasks, it earns Experience Points (EXP) and eventually **"Evolves"** into new, cooler forms. 
 
 > **🏆 Target: Statement 1 (AI-Powered Game)**
-> Instead of just asking an AI agent to do work for you, we gamified the process of *teaching* the AI how to do work. We fully orchestrated Google's AI suite (Gemini Live API, Computer Use, Imagen) into a digital pet simulator, creating an unprecedented, creative AI experience.
+> Instead of just asking an AI agent to do work for you, we gamified the process of *teaching* the AI how to do work. We fully orchestrated Google's AI suite (Gemini Live API, Computer Use, Imagen, **and Veo for video/effects**) into a digital pet simulator, creating an unprecedented, creative AI experience.
 
 ### ⚠️ To the Hackathon Judges: Clarification of Contributions
 
@@ -97,7 +97,7 @@ This project extends the open-source project [VisionClaw](https://github.com/sse
 ### 🎮 How to Play
 
 1. **Birth**
-   Draw a simple "magical creature" on paper. Gemini will see it through your glasses, parse its attributes (e.g., "fire slime"), and generate your very first Lv.1 3D visual companion.
+   Draw a simple "magical creature" on paper. Gemini will see it through your glasses, parse its visual attributes and **infer physical behaviors (e.g., "burns and falls")**. Then, Imagen and Veo work together to generate a living, animated video companion overlaid in the real world.
 2. **Learn & Grow**
    - **Talk**: Normal conversations grant small amounts of EXP.
    - **Show items**: Scanning interesting objects in the real world yields bonus EXP.

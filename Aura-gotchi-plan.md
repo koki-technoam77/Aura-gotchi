@@ -109,17 +109,18 @@ Google技術（Gemini + Imagen）の能力を最大限に見せつける、デ�
 
 ```
 【Step 1: ユーザーが紙に絵を描く（Input）】
-  Ray-Banのカメラで、ユーザーが描いた絵（例: 燃えるスライムの絵）を撮影する。
+  Ray-Banのカメラで、ユーザーが描いた絵を撮影する。
+  ★重要: スライムや犬だけでなく、**「ただの丸」「記号」「よくわからない形」など、ユーザーが何を描いたとしても**、ゲーム側の仕組みとして「使い魔」へと昇華させます。
 
 【Step 2: Gemini連携（認識・属性推測）】
-  送信された画像をGeminiに分析させます。
-  Prompt: 「この手書きの絵は何の生き物ですか？また、この生き物の属性（炎、水など）と特徴（丸い、トゲがあるなど）を1〜2語で抽出してください」
-  → 解析結果: "炎", "スライム", "丸い"
+  送信された画像をGeminiに分析させます。（※何が描かれていても、必ず生き物やキャラクターとして解釈させるプロンプトにします）
+  Prompt: 「この手書きの絵を『ファンタジーRPGのモンスターや使い魔』として解釈してください。この絵からインスピレーションを得て、この生き物の属性（例: 炎、水、機械など）と身体的特徴（例: 丸い、トゲがある、一つ目など）を1〜2語の英単語で抽出してください」
+  → 解析結果（例）: "fire, round" （よくわからない丸いラクガキを描いた場合）
 
 【Step 3: Imagen連携（アセット生成）】
-  Step2で得た属性をもとに、Nano Banana（またはImagen API）用のプロンプトを組み立て、ゲーム用アセットを生成します。
-  Prompt: "A cute round slime made of fire, 3D game asset style, highly detailed, white background"
-  → 結果: このプロンプトで生成された高品質な画像が、FamiliarView（スマホ画面）に出現し、使い魔が誕生する！
+  Step2で得た属性をもとに、Nano Banana（またはImagen API）用のプロンプトを組み立て、**「8-bit ドット絵調（ピクセルアート）」**のゲーム用アセットを生成します。
+  Prompt: "A cute round companion creature made of fire, 8-bit pixel art style, flat 2D game sprite, white background"
+  → 結果: このプロンプトで生成された高品質な【ドット絵の使い魔】が、FamiliarView（スマホ画面）に出現し誕生する！
 ```
 
 ---
@@ -427,11 +428,11 @@ struct FamiliarView: View {
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
       Ray-Banをかけて登場
       「この紙に描いたラクガキから、相棒を生み出します」
-      （紙に描いた炎のスライムの絵をRay-Banで見せる）
+      （紙に描いた適当な絵、あるいは記号などをRay-Banで見せる）
       「僕の相棒として目を覚まして」
       
-      → Geminiが `parse_drawing` を呼び出し属性（"fire slime"）を抽出
-      → 即座にImagen API経由で高品質な【炎のスライム】が生成される！
+      → Geminiが `parse_drawing` を呼び出し属性（"fire, round" 等）を抽出
+      → 即座にImagen API経由で【8-bitドット絵】の使い魔が生成される！
       → スマホにフワフワ動く使い魔が登場
       使い魔「おお...すごい場所だ！人がいっぱい！」
 
@@ -462,8 +463,8 @@ struct FamiliarView: View {
 
 1:55  ★進化の瞬間
       使い魔「...変わる...！」
-      → Nano Bananaが進化後ビジュアルを生成 (例: "evolved fire slime with wings")
-      → 幼体 → 少し大きくカッコいい姿になる
+      → Nano Bananaが進化後ビジュアルを生成 (例: "evolved cute fire creature with wings, 8-bit pixel art style")
+      → 幼体 → 少し大きくカッコいい姿（ドット絵）になる
       → before/after表示
       → 「どうだ、かっこよくなっただろ？」
 
@@ -493,8 +494,8 @@ struct FamiliarView: View {
 
 ```
 誕生イベント:
-  ☐ 簡単な絵を描いた紙を用意しておく（例: 炎のスライム、葉っぱの犬）
-  ☐ フォールバック: parse_drawingがコケた場合のために、初期ベース属性を固定値で持っておく
+  ☐ 簡単な絵を描いた紙を用意しておく（当日その場でよくわからない図形を描いてもOKなことをアピール）
+  ☐ フォールバック: parse_drawingがコケた場合のために、初期ベース属性（ピクセルアート）を固定値で持っておく
 
 見せ場1（X投稿）:
   ☐ Xにログイン済み

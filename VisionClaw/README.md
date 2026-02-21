@@ -1,7 +1,7 @@
-# Aura-gotchi: 現実世界に棲むAI使い魔 🐉✨
+# Aura-gotchi: 現実世界に棲むAI使い魔 �✨
 
-![Aura-gotchi](assets/cover.png)
-*(※ Image placeholder)*
+![Aura-gotchi](../assets/cover.png)
+*(※ Image placeholder - replace with actual screenshot or logo)*
 
 **「AIを買う時代から、飼う（育てる）時代へ」**
 

@@ -74,7 +74,7 @@ enum GeminiConfig {
   // REQUIRED: Add your own Gemini API key here.
   // Get one at https://aistudio.google.com/apikey
   // ---------------------------------------------------------------
-  static let apiKey = "***REMOVED***"
+  static let apiKey = "YOUR_GEMINI_API_KEY"
 
   // ---------------------------------------------------------------
   // OPTIONAL: Moltworker cloud gateway config (for agentic tool-calling).
@@ -85,7 +85,7 @@ enum GeminiConfig {
   static let openClawHost = "https://moltbot-sandbox2.koki-sonoda.workers.dev"
   static let openClawPort = 443
   static let openClawHookToken = "YOUR_OPENCLAW_HOOK_TOKEN"
-  static let openClawGatewayToken = "***REMOVED***"
+  static let openClawGatewayToken = "YOUR_MOLTBOT_GATEWAY_TOKEN"
 
   static func websocketURL() -> URL? {
     guard apiKey != "YOUR_GEMINI_API_KEY" && !apiKey.isEmpty else { return nil }

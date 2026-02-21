@@ -127,8 +127,8 @@ class VeoService {
                 ]
             ],
             "parameters": [
-                "aspectRatio": "1:1",
-                "durationSeconds": "4"
+                "aspectRatio": "9:16",
+                "durationSeconds": 5
             ]
         ]
 

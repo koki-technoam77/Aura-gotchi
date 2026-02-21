@@ -95,19 +95,20 @@ class ToolCallRouter {
     if energyChange != 0 {
       gameState.changeEnergy(energyChange)
     }
-    
+
     let evolved = gameState.checkEvolution()
 
     if evolved {
       gameState.triggerHappy()
+      regenerateVisualForEvolution()
     }
-    
+
     var deathMsg = ""
     if gameState.isDead {
         deathMsg = " 【DEATH】Aura-gotchiは死んでしまいました..."
     }
 
-    let result = "EXP:\(gameState.exp)/\(gameState.expToEvolve) Lv:\(gameState.level) Energy:\(gameState.energy)\(evolved ? " ★進化した！generate_visualを呼んで新しい姿を見せて！" : "") 理由:\(reason)\(deathMsg)"
+    let result = "EXP:\(gameState.exp)/\(gameState.expToEvolve) Lv:\(gameState.level) Energy:\(gameState.energy)\(evolved ? " ★進化した！新しい姿を生成中..." : "") 理由:\(reason)\(deathMsg)"
     NSLog("[Game] %@", result)
     sendResponse(buildToolResponse(callId: call.id, name: call.name, result: .success(result)))
   }
@@ -122,9 +123,10 @@ class ToolCallRouter {
     let evolved = gameState.checkEvolution()
     if evolved {
         gameState.triggerHappy()
+        regenerateVisualForEvolution()
     }
 
-    let evolveMsg = evolved ? " ★一撃で進化した！generate_visualを呼んで新しい姿を見せて！" : ""
+    let evolveMsg = evolved ? " ★一撃で進化した！新しい姿を生成中..." : ""
     let result = "スキル「\(skillName)」を習得！特大ボーナスEXP獲得！\(evolveMsg)"
     NSLog("[Game] %@", result)
     sendResponse(buildToolResponse(callId: call.id, name: call.name, result: .success(result)))
@@ -176,6 +178,52 @@ class ToolCallRouter {
       self.inFlightTasks.removeValue(forKey: call.id)
     }
     inFlightTasks[call.id] = task
+  }
+
+  // MARK: - Auto Evolution Visual
+
+  /// 進化時にビジュアル＋動画を自動再生成する（fire-and-forget）
+  private func regenerateVisualForEvolution() {
+    let base = gameState.baseAttributes.isEmpty ? "digital entity" : gameState.baseAttributes
+    let fullHint = "evolved version of \(base), more complex and advanced cyber appearance, level \(gameState.level)"
+
+    Task { @MainActor [weak self] in
+      guard let self else { return }
+      NSLog("[Game] Auto-regenerating visual for evolution to Lv.%d", self.gameState.level)
+
+      let imageURL = await self.imagenService.generateFamiliarVisual(
+        level: self.gameState.level,
+        skillCount: self.gameState.learnedSkills.count,
+        hint: fullHint
+      )
+
+      guard let imageURL else {
+        NSLog("[Game] Evolution visual generation failed")
+        return
+      }
+
+      self.gameState.currentVisualURL = URL(string: imageURL)
+      self.gameState.save()
+      self.gameState.triggerHappy()
+      NSLog("[Game] Evolution visual updated: %@", imageURL)
+
+      // Veoデュアル動画も再生成
+      let behavior = self.gameState.behaviorPrompt.isEmpty ? "floats and glows dynamically" : self.gameState.behaviorPrompt
+      let evolvedBehavior = "evolved version, intense \(behavior), glowing cyber effects"
+
+      if let imgURL = URL(string: imageURL),
+         let imageData = try? Data(contentsOf: imgURL),
+         let uiImage = UIImage(data: imageData) {
+        NSLog("[Game] Starting evolved Veo DUAL video generation...")
+        let veoService = VeoService()
+        if let dualURLs = await veoService.generateDualVideos(initialImage: uiImage, behaviorPrompt: evolvedBehavior) {
+          self.gameState.currentVideoURL = dualURLs.idle
+          self.gameState.currentHappyVideoURL = dualURLs.happy
+          self.gameState.save()
+          NSLog("[Game] Evolved Veo DUAL videos ready")
+        }
+      }
+    }
   }
 
   // MARK: - OpenClaw Delegation

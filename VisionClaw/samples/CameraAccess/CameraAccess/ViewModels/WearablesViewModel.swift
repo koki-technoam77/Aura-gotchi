@@ -27,6 +27,7 @@ class WearablesViewModel: ObservableObject {
   @Published var hasMockDevice: Bool
   @Published var registrationState: RegistrationState
   @Published var showGettingStartedSheet: Bool = false
+  @Published var deviceCameraOnly: Bool = false
   @Published var showError: Bool = false
   @Published var errorMessage: String = ""
 

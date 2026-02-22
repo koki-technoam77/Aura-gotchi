@@ -51,7 +51,19 @@ struct HomeScreenView: View {
 
         Spacer()
 
-        VStack(spacing: 20) {
+        VStack(spacing: 12) {
+          CustomButton(
+            title: "iPadのカメラで始める",
+            style: .primary,
+            isDisabled: false
+          ) {
+            viewModel.deviceCameraOnly = true
+          }
+
+          Text("— or —")
+            .font(.system(size: 13))
+            .foregroundColor(.gray)
+
           Text("You'll be redirected to the Meta AI app to confirm your connection.")
             .font(.system(size: 14))
             .foregroundColor(.gray)
@@ -61,7 +73,7 @@ struct HomeScreenView: View {
 
           CustomButton(
             title: viewModel.registrationState == .registering ? "Connecting..." : "Connect my glasses",
-            style: .primary,
+            style: .secondary,
             isDisabled: viewModel.registrationState == .registering
           ) {
             viewModel.connectGlasses()

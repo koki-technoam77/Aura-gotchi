@@ -51,6 +51,14 @@ struct StreamSessionView: View {
     .onChange(of: viewModel.streamingMode) { _, newMode in
       geminiVM.streamingMode = newMode
     }
+    .onChange(of: isCharacterCreated) { _, created in
+      // iPad-only mode: auto-start device camera after character creation
+      if created && wearablesViewModel.deviceCameraOnly {
+        Task {
+          await viewModel.handleStartIPhone()
+        }
+      }
+    }
     .alert("Error", isPresented: $viewModel.showError) {
       Button("OK") {
         viewModel.dismissError()

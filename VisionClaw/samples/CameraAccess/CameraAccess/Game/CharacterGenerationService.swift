@@ -169,18 +169,21 @@ class CharacterGenerationService {
                 [
                     "parts": [
                         ["text": """
-                        Interpret this hand-drawn picture as a fantasy RPG creature. Extract TWO things:
-                        1. Elemental attribute and physical trait as short English keywords (e.g. fire, round)
-                        2. A short physical behavior description for animation (e.g. burns and floats gently)
+                        Interpret this hand-drawn picture as a unique fantasy RPG creature.
+
+                        Extract TWO things:
+                        1. A vivid visual description of the creature in English (10-20 words). Include: element/material, body shape, color scheme, distinctive features, texture. Be SPECIFIC — every drawing is different.
+                        2. A short physical behavior/animation description (5-10 words)
 
                         Reply ONLY in this exact format, nothing else:
-                        KEYWORDS | BEHAVIOR
+                        DESCRIPTION | BEHAVIOR
 
                         Examples:
-                        fire, round | burns and floats gently
-                        ice, crystalline wings | glides with trailing frost particles
-                        mechanical, spiky | rotates gears and sparks with electricity
-                        water, blob-like | wobbles and drips with rippling surface
+                        a fiery red slime with molten lava core and orange dripping edges | burns and floats gently
+                        an icy blue dragon with crystalline wings and frost-tipped tail | glides with trailing frost particles
+                        a rusty mechanical spider with exposed bronze gears and electric sparks | rotates gears and sparks with electricity
+                        a translucent green water blob with swirling bubbles inside | wobbles and drips with rippling surface
+                        a dark purple shadow cat with glowing violet eyes and smoky tendrils | slinks and phases through shadows
                         """],
                         ["inlineData": ["mimeType": "image/jpeg", "data": base64]]
                     ]

@@ -168,22 +168,24 @@ class ImagenService {
     // MARK: - Prompt Building
 
     private func buildPrompt(level: Int, skillCount: Int, hint: String) -> String {
-        let baseCreature: String
+        let sizeModifier: String
         switch level {
         case 1:
-            baseCreature = "a tiny cute baby creature hatchling, small round body, big curious eyes"
+            sizeModifier = "tiny baby form, small round body, big curious eyes"
         case 2:
-            baseCreature = "a young creature with small wing buds and emerging features, playful expression"
+            sizeModifier = "young juvenile form, small wing buds emerging, playful stance"
         case 3:
-            baseCreature = "a majestic adolescent creature with spread wings and glowing patterns"
+            sizeModifier = "majestic adolescent form, spread wings, glowing energy patterns"
         default:
-            baseCreature = "a powerful fully evolved creature with magnificent wings, ornate features, and luminous aura"
+            sizeModifier = "powerful fully evolved form, magnificent wings, luminous aura"
         }
 
+        let creatureDesc = hint.isEmpty ? "a fantasy creature" : hint
+
         return """
-        \(baseCreature), \
-        \(hint.isEmpty ? "" : "inspired by: \(hint), ") \
+        \(creatureDesc), \(sizeModifier), \
         8-bit pixel art style, flat 2D game sprite, vibrant colors, \
+        unique distinctive design, \
         single creature centered on plain solid white background, \
         no text, no watermark, no shadows, clean edges.
         """
